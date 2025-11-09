@@ -1,29 +1,138 @@
+# ============================================
+# JAVA / Spring Boot Backend
+# ============================================
+
 # Compiled class files
 *.class
 
 # Maven target directory
 target/
+build/
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+*.classpath
+
+# Gradle (if applicable)
+.gradle/
+gradle/
+
+# Package files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+!**/maven-wrapper.jar
 
 # Logs
 *.log
 logs/
 
-# OS files
-.DS_Store
-Thumbs.db
+# ============================================
+# Node / React TypeScript Frontend
+# ============================================
 
-# IDEs
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Build outputs
+client/dist/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# ============================================
+# IDEs / Editors
+# ============================================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
 .idea/
 *.iml
+*.iws
+*.ipr
+out/
+
+# Eclipse
 .project
 .classpath
 .settings/
-.vscode/
+.metadata/
+bin/
 
-# Build tools
-.mvn/wrapper/maven-wrapper.jar
+# NetBeans
+nbproject/
+.nb-gradle/
 
-# Uploaded files
+# Sublime
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+.vim/
+*.swp
+*.swo
+*~
+
+# ============================================
+# Operating System
+# ============================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+# Windows
+Thumbs.db
+Desktop.ini
+*.lnk
+$RECYCLE.BIN/
+
+# Linux
+.directory
+
+# ============================================
+# Project-Specific
+# ============================================
+
+# Uploaded files/directories
 uploads/
+temp/
+tmp/
 
-node_modules/
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Property files with sensitive data
+*.properties.local
+application-local.properties
+
+# macOS specific
+.AppleDouble
+.LSOverride
+
+# Dependency lock files (optional - uncomment if needed)
+# package-lock.json
+# yarn.lock
