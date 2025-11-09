@@ -27,11 +27,15 @@ function linkify(text: string): (string | JSX.Element)[] {
   return parts;
 }
 
+interface MessageWithTimestamp extends ChatMessage {
+  timestamp?: number;
+}
+
 export default function App() {
   const [connected, setConnected] = useState(false);
   const [user, setUser] = useState('');
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<MessageWithTimestamp[]>([]);
   const clientRef = useRef<Client | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -45,7 +49,10 @@ export default function App() {
     client.onConnect = () => {
       setConnected(true);
       client.subscribe(TOPIC_PUBLIC, (msg: IMessage) => {
-        try { setMessages(prev => [...prev, JSON.parse(msg.body) as ChatMessage]); }
+        try { 
+          const parsedMsg = JSON.parse(msg.body) as ChatMessage;
+          setMessages(prev => [...prev, { ...parsedMsg, timestamp: Date.now() }]); 
+        }
         catch { /* ignore parse errors */ }
       });
       client.publish({ destination: ADD_USER_DEST, body: JSON.stringify({ sender: user }) });
@@ -105,24 +112,68 @@ export default function App() {
             const isOwnMessage = m.sender === user;
             const messageType = m.type?.toLowerCase() || 'chat';
             const isSystemMessage = messageType === 'join' || messageType === 'leave';
-            const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
             
-            if (isSystemMessage) {
-              return (
-                <div key={i} className={`message ${messageType}`}>
-                  <span className="content">{m.content || ''}</span>
-                </div>
-              );
+            // Get message date
+            const messageDate = new Date(m.timestamp || Date.now());
+            const timestamp = messageDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            
+            // Check if we need to show a date separator
+            let showDateSeparator = false;
+            let dateSeparatorText = '';
+            
+            if (i === 0) {
+              showDateSeparator = true;
+            } else {
+              const prevMessage = messages[i - 1];
+              const prevDate = new Date(prevMessage.timestamp || Date.now());
+              const currentDateStr = messageDate.toDateString();
+              const prevDateStr = prevDate.toDateString();
+              
+              if (currentDateStr !== prevDateStr) {
+                showDateSeparator = true;
+              }
+            }
+            
+            if (showDateSeparator) {
+              const today = new Date();
+              const yesterday = new Date(today);
+              yesterday.setDate(yesterday.getDate() - 1);
+              
+              const messageDateStr = messageDate.toDateString();
+              const todayStr = today.toDateString();
+              const yesterdayStr = yesterday.toDateString();
+              
+              if (messageDateStr === todayStr) {
+                dateSeparatorText = 'Today';
+              } else if (messageDateStr === yesterdayStr) {
+                dateSeparatorText = 'Yesterday';
+              } else {
+                dateSeparatorText = messageDate.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+              }
             }
             
             return (
-              <div key={i} className={`message-wrapper ${isOwnMessage ? 'own' : 'other'}`}>
-                <div className="message">
-                  {!isOwnMessage && <span className="sender">{m.sender || 'anon'}</span>}
-                  <span className="content">{linkify(m.content || '')}</span>
-                  <span className="timestamp">{timestamp}</span>
-                </div>
-              </div>
+              <React.Fragment key={i}>
+                {showDateSeparator && (
+                  <div className="date-separator">
+                    <span>{dateSeparatorText}</span>
+                  </div>
+                )}
+                
+                {isSystemMessage ? (
+                  <div className={`message ${messageType}`}>
+                    <span className="content">{m.content || ''}</span>
+                  </div>
+                ) : (
+                  <div className={`message-wrapper ${isOwnMessage ? 'own' : 'other'}`}>
+                    <div className="message">
+                      {!isOwnMessage && <span className="sender">{m.sender || 'anon'}</span>}
+                      <span className="content">{linkify(m.content || '')}</span>
+                      <span className="timestamp">{timestamp}</span>
+                    </div>
+                  </div>
+                )}
+              </React.Fragment>
             );
           })}
           <div ref={messagesEndRef} />
