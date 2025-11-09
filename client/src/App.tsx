@@ -33,6 +33,7 @@ export default function App() {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const clientRef = useRef<Client | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const connect = useCallback(() => {
     if (clientRef.current?.connected) return;
@@ -79,6 +80,11 @@ export default function App() {
     }
   }, [user]);
 
+  // Auto-scroll to bottom when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   return (
     <div className="container">
       <header>
@@ -95,12 +101,31 @@ export default function App() {
 
       <main className="chat">
         <div className="messages">
-          {messages.map((m, i) => (
-            <div key={i} className={`message ${m.type?.toLowerCase() || 'chat'}`}>
-              <span className="sender">{m.sender || 'anon'}:</span>
-              <span className="content">{linkify(m.content || '')}</span>
-            </div>
-          ))}
+          {messages.map((m, i) => {
+            const isOwnMessage = m.sender === user;
+            const messageType = m.type?.toLowerCase() || 'chat';
+            const isSystemMessage = messageType === 'join' || messageType === 'leave';
+            const timestamp = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            
+            if (isSystemMessage) {
+              return (
+                <div key={i} className={`message ${messageType}`}>
+                  <span className="content">{m.content || ''}</span>
+                </div>
+              );
+            }
+            
+            return (
+              <div key={i} className={`message-wrapper ${isOwnMessage ? 'own' : 'other'}`}>
+                <div className="message">
+                  {!isOwnMessage && <span className="sender">{m.sender || 'anon'}</span>}
+                  <span className="content">{linkify(m.content || '')}</span>
+                  <span className="timestamp">{timestamp}</span>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
         </div>
         <div className="composer">
           <input
