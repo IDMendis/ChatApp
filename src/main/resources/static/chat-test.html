@@ -1,0 +1,92 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Chat test</title>
+<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/stompjs@2/dist/stomp.min.js"></script>
+<body>
+  <h3>Real-time Group Chat Test</h3>
+  <div>
+    <label>Username: <input id="user" placeholder="alice"></label>
+    <button id="connect">Connect</button>
+    <button id="disconnect">Disconnect</button>
+  </div>
+  <div style="margin-top:8px;">
+    <input id="msg" placeholder="type message..." style="width:300px;">
+    <button id="send">Send</button>
+  </div>
+  <div style="margin-top:8px;">
+    <input type="file" id="file" />
+    <button id="upload">Upload file</button>
+  </div>
+  <pre id="log" style="border:1px solid #ccc; padding:8px; margin-top:8px; height:240px; overflow:auto;"></pre>
+<script>
+  const logEl = document.getElementById('log');
+  const log = (t) => { logEl.textContent += t + '\n'; logEl.scrollTop = logEl.scrollHeight; };
+
+  let stomp = null;
+
+  document.getElementById('connect').onclick = () => {
+    const sock = new SockJS('/ws');
+    stomp = Stomp.over(sock);
+    stomp.connect({}, () => {
+      const user = document.getElementById('user').value || ('user-' + Math.floor(Math.random()*1000));
+      log(`[connected as ${user}] subscribing to /topic/public`);
+      stomp.subscribe('/topic/public', (frame) => {
+        try {
+          const msg = JSON.parse(frame.body);
+          renderMessage(msg);
+        } catch (e) {
+          log('[recv raw] ' + frame.body);
+        }
+      });
+      stomp.send('/app/chat.addUser', {}, JSON.stringify({ sender: user, content: '' }));
+    });
+  };
+
+  document.getElementById('disconnect').onclick = () => {
+    if (stomp) stomp.disconnect(() => log('[disconnected]'));
+  };
+
+  document.getElementById('send').onclick = () => {
+    if (!stomp || !stomp.connected) return log('[warn] not connected');
+    const user = document.getElementById('user').value || 'user';
+    const content = document.getElementById('msg').value || '';
+    stomp.send('/app/chat.sendMessage', {}, JSON.stringify({ sender: user, content }));
+    document.getElementById('msg').value = '';
+  };
+
+  document.getElementById('upload').onclick = async () => {
+    const f = document.getElementById('file').files[0];
+    if (!f) return log('[warn] choose a file first');
+    const form = new FormData();
+    form.append('file', f);
+    const res = await fetch('/api/files/upload', { method: 'POST', body: form });
+    const json = await res.json();
+    log('Uploaded: ' + json.filename + ' (' + json.url + ')');
+    // Send a message containing the absolute URL so others can click/view
+    if (stomp && stomp.connected) {
+      const user = document.getElementById('user').value || 'user';
+      stomp.send('/app/chat.sendMessage', {}, JSON.stringify({ sender: user, content: `Shared file: ${json.filename} (${json.url})` }));
+    }
+  };
+
+  function renderMessage(message) {
+    const text = `[${message.sender}] ${message.content}`;
+    log(text);
+    // naive image rendering if the message content contains an absolute /files/ URL
+    const match = message.content.match(/https?:\/\/[^\s]+\/files\/[^)\s]+/);
+    if (match) {
+      const url = match[0];
+      const isImg = /\.(png|jpe?g|gif|webp|svg)$/i.test(url);
+      if (isImg) {
+        const img = new Image();
+        img.src = url;
+        img.style.maxWidth = '300px';
+        logEl.appendChild(img);
+        logEl.appendChild(document.createTextNode('\n'));
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+    }
+  }
+</script>
+</body>

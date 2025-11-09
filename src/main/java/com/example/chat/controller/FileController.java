@@ -9,6 +9,7 @@ import org.springframework.http.MediaTypeFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,12 +29,15 @@ public class FileController {
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, String> upload(@RequestPart("file") MultipartFile file) throws IOException {
         String filename = storageService.store(file);
+
+        String base = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+        String fileUrl = base + "/files/" + filename;
+        String apiUrl = base + "/api/files/" + filename + "?inline=true";
+
         Map<String, String> result = new HashMap<>();
         result.put("filename", filename);
-        // Prefer static resource mapping for inline display
-        result.put("url", "/files/" + filename);
-        // Keep API download url (inline by default)
-        result.put("apiUrl", "/api/files/" + filename + "?inline=true");
+        result.put("url", fileUrl);
+        result.put("apiUrl", apiUrl);
         return result;
     }
 
