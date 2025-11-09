@@ -26,3 +26,4 @@ Thumbs.db
 # Uploaded files
 uploads/
 
+node_modules/
