@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Real-time Group Chat</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 0; padding: 16px; }
+    #chat { border: 1px solid #ddd; height: 300px; overflow-y: auto; padding: 8px; margin-bottom: 12px; }
+    #status { color: #666; font-size: 0.9em; }
+    .msg { margin: 6px 0; }
+    .sys { color: #888; font-style: italic; }
+    .me { color: #0366d6; }
+  </style>
+</head>
+<body>
+  <h2>Real-time Group Chat</h2>
+  <div id="status">Disconnected</div>
+  <div id="chat"></div>
+
+  <div>
+    <input id="name" placeholder="Your name" />
+    <button id="connect">Connect</button>
+    <button id="disconnect" disabled>Disconnect</button>
+  </div>
+
+  <div style="margin-top: 10px;">
+    <input id="message" placeholder="Type a message" />
+    <button id="send" disabled>Send</button>
+  </div>
+
+  <div style="margin-top: 16px;">
+    <input type="file" id="fileInput" />
+    <button id="upload" disabled>Upload file</button>
+    <div id="uploadResult"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <script>
+    let stompClient = null;
+    let username = '';
+
+    const chat = document.getElementById('chat');
+    const status = document.getElementById('status');
+
+    function addMessage(text, css = 'msg') {
+      const div = document.createElement('div');
+      div.className = css;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function setConnected(connected) {
+      document.getElementById('send').disabled = !connected;
+      document.getElementById('disconnect').disabled = !connected;
+      document.getElementById('upload').disabled = !connected;
+      document.getElementById('connect').disabled = connected;
+      status.textContent = connected ? 'Connected' : 'Disconnected';
+    }
+
+    document.getElementById('connect').addEventListener('click', () => {
+      username = document.getElementById('name').value.trim() || 'Anonymous';
+      const socket = new SockJS('/ws');
+      stompClient = Stomp.over(socket);
+      stompClient.debug = null; // silence logs
+      stompClient.connect({}, () => {
+        setConnected(true);
+        stompClient.subscribe('/topic/public', (frame) => {
+          try {
+            const msg = JSON.parse(frame.body);
+            if (msg.type === 'JOIN') {
+              addMessage(`${msg.sender} joined`, 'sys');
+            } else if (msg.type === 'LEAVE') {
+              addMessage(`${msg.sender} left`, 'sys');
+            } else {
+              const who = msg.sender === username ? 'me' : 'msg';
+              addMessage(`${msg.sender}: ${msg.content}`, who);
+            }
+          } catch (e) {
+            addMessage(frame.body);
+          }
+        });
+        stompClient.send('/app/chat.addUser', {}, JSON.stringify({ sender: username, type: 'JOIN' }));
+      });
+    });
+
+    document.getElementById('disconnect').addEventListener('click', () => {
+      if (stompClient) {
+        stompClient.send('/app/chat.addUser', {}, JSON.stringify({ sender: username, type: 'LEAVE' }));
+        stompClient.disconnect(() => setConnected(false));
+      }
+    });
+
+    document.getElementById('send').addEventListener('click', () => {
+      const text = document.getElementById('message').value;
+      if (stompClient && text.trim()) {
+        stompClient.send('/app/chat.sendMessage', {}, JSON.stringify({ sender: username, content: text, type: 'CHAT' }));
+        document.getElementById('message').value = '';
+      }
+    });
+
+    document.getElementById('upload').addEventListener('click', async () => {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return;
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/files/upload', { method: 'POST', body: form });
+      const data = await res.json();
+      document.getElementById('uploadResult').innerHTML = `Uploaded: <a href="${data.url}">${data.filename}</a>`;
+      if (stompClient) {
+        stompClient.send('/app/chat.sendMessage', {}, JSON.stringify({ sender: username, content: `Shared file: ${data.filename} (${data.url})`, type: 'CHAT' }));
+      }
+    });
+  </script>
+</body>
+</html>

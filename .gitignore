@@ -1,0 +1,27 @@
+# Compiled class files
+*.class
+
+# Maven target directory
+target/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+
+# Build tools
+.mvn/wrapper/maven-wrapper.jar
+
+# Uploaded files
+uploads/
