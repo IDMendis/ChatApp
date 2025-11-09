@@ -82,7 +82,7 @@ export default function App() {
   return (
     <div className="container">
       <header>
-        <h2>Realtime Group Chat</h2>
+        <h2>HuddleUp</h2>
         <div className="controls">
           <input placeholder="username" value={user} onChange={e => setUser(e.target.value)} />
           {!connected ? (
