@@ -1,0 +1,16 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+.container { max-width: 900px; margin: 0 auto; padding: 16px; }
+header { display: flex; align-items: center; justify-content: space-between; }
+.controls input { margin-right: 8px; padding: 6px 8px; }
+.controls button { padding: 6px 12px; }
+.chat { border: 1px solid #ddd; border-radius: 8px; margin-top: 12px; display: flex; flex-direction: column; height: 70vh; }
+.messages { flex: 1; overflow: auto; padding: 12px; background: #fafafa; }
+.message { padding: 6px 8px; margin-bottom: 6px; background: white; border: 1px solid #eee; border-radius: 6px; }
+.message .sender { font-weight: 600; margin-right: 6px; }
+.message.join, .message.leave { text-align: center; color: #666; background: transparent; border: none; }
+.bubble-image img { max-width: 240px; max-height: 240px; display: block; margin-top: 4px; border-radius: 4px; border: 1px solid #ddd; }
+.composer { display: flex; gap: 8px; padding: 10px; border-top: 1px solid #eee; }
+.composer input[type="text"], .composer input:not([type]) { flex: 1; padding: 8px; }
+.upload input[type=file] { display: none; }
+.upload { padding: 6px 12px; border: 1px solid #ccc; border-radius: 6px; background: #f4f4f4; cursor: pointer; align-self: center; }
